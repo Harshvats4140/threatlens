@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ThreatLens</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- 🔐 Title -->
+        <div class="title">
+            <img src="icon.jpg" alt="ThreatLens Logo" height="30" width="30">
+            <strong>ThreatLens</strong>
+        </div>
+
+        <!-- 📌 Info -->
+        <div class="info">
+            <p>Analyze URLs and detect threats instantly</p>
+        </div>
+
+        <!-- 🌐 Current URL -->
+        <div class="url-box">
+            <p><strong>Current URL:</strong></p>
+            <div id="site">Loading...</div>
+        </div>
+
+        <!-- 🔍 Button -->
+        <div class="check">
+            <button id="checkBtn">Scan URL</button>
+        </div>
+
+        <!-- 📊 Result -->
+        <div class="result">
+            <p id="status">Result will appear here</p>
+            <p id="riskScore"></p>
+        </div>
+
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

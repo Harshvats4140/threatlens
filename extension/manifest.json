@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+
+  "name": "ThreatLens - URL Safety Checker",
+  "description": "Analyze and detect malicious or phishing websites using AI.",
+  "version": "2.0",
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.jpg"
+  },
+
+  "icons": {
+    "16": "icon.jpg",
+    "32": "icon.jpg",
+    "48": "icon.jpg",
+    "128": "icon.jpg"
+  },
+
+  "permissions": [
+    "activeTab",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}

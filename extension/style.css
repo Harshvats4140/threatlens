@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+body {
+  width: 320px;
+  font-family: 'Poppins', sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  margin: 0;
+  padding: 10px;
+}
+
+/* Container */
+.container {
+  text-align: center;
+  padding: 10px;
+}
+
+/* Title */
+.title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #38bdf8;
+  margin-bottom: 10px;
+}
+
+/* Info */
+.info {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 15px;
+}
+
+/* URL Box */
+.url-box {
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+#site {
+  font-size: 12px;
+  color: #22d3ee;
+  word-wrap: break-word;
+}
+
+/* Button */
+button {
+  border-radius: 25px;
+  border: none;
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 25px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #38bdf8;
+}
+
+/* Result Section */
+.result {
+  margin-top: 15px;
+}
+
+#status {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Default colors (JS will override if needed) */
+.safe {
+  color: #22c55e;
+}
+
+.suspicious {
+  color: #facc15;
+}
+
+.malicious {
+  color: #ef4444;
+}
+
+#riskScore {
+  font-size: 13px;
+  margin-top: 5px;
+  color: #cbd5f5;
+}
