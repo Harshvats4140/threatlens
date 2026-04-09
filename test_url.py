@@ -19,7 +19,7 @@ def check_url(url):
     print("Prediction:", "Phishing 🚨" if prediction == 1 else "Safe ✅")
 
 # Test URLs
-check_url("https://google.com")
+check_url("https://googie.com")
 check_url("http://free-login-bank.xyz")
 check_url("https://chatgpt.com")
 check_url("http://ascentcircle.in")

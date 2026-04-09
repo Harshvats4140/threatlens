@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from difflib import SequenceMatcher
 import numpy as np
 import joblib
 import socket
@@ -15,9 +16,10 @@ app = Flask(__name__)
 CORS(app)
 
 # 🔹 CONFIG
-GOOGLE_API_KEY = "YOUR_API_KEY_HERE"
+GOOGLE_API_KEY = "AIzaSyC__G72Iok1TbdXiBjZ9QfEUmOYKiLn-3o"
 
-# 🔥 Load Tranco whitelist
+# ================== LOAD TRUSTED DOMAINS ==================
+
 trusted_domains = set()
 
 def load_tranco():
@@ -25,7 +27,7 @@ def load_tranco():
     try:
         with open("tranco.csv", "r") as f:
             for line in f:
-                domain = line.strip().split(",")[-1]
+                domain = line.strip().split(",")[-1].lower()
                 trusted_domains.add(domain)
         print(f"✅ Loaded {len(trusted_domains)} trusted domains")
     except Exception as e:
@@ -33,7 +35,8 @@ def load_tranco():
 
 load_tranco()
 
-# 🔹 Load ML model
+# ================== LOAD MODEL ==================
+
 try:
     model = joblib.load("models/random_forest.pkl")
     print("✅ ML Model Loaded Successfully")
@@ -42,17 +45,18 @@ except Exception as e:
     model = None
 
 
-# 🔥 Extract domain
+# ================== HELPERS ==================
+
 def extract_domain(url):
-    return urlparse(url).netloc.replace("www.", "")
+    return urlparse(url).netloc.replace("www.", "").lower()
 
+def similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
 
-# 🔥 Trusted domain check
 def is_trusted_domain(url):
-    return extract_domain(url) in trusted_domains
+    domain = extract_domain(url)
+    return any(domain == td or domain.endswith("." + td) for td in trusted_domains)
 
-
-# 🔥 DNS Check
 def is_domain_alive(url):
     try:
         socket.gethostbyname(extract_domain(url))
@@ -60,8 +64,28 @@ def is_domain_alive(url):
     except:
         return False
 
+# ✅ FIXED FAKE BRAND DETECTION
+def is_fake_brand(url):
+    brands = ["google", "facebook", "amazon", "paypal", "microsoft"]
 
-# 🔥 Google Safe Browsing
+    domain = extract_domain(url)
+
+    for brand in brands:
+        # ✅ Real domain allowed
+        if domain == f"{brand}.com":
+            return False
+
+        # 🚨 Fake domains like facebook-login.xyz
+        if brand in domain and not domain.endswith(f"{brand}.com"):
+            return True
+
+        # 🚨 Similar domains like googie.com
+        if similarity(domain, f"{brand}.com") > 0.8 and domain != f"{brand}.com":
+            return True
+
+    return False
+
+
 def check_google_safe_browsing(url):
     endpoint = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={GOOGLE_API_KEY}"
 
@@ -82,7 +106,6 @@ def check_google_safe_browsing(url):
         return False
 
 
-# 🔥 WHOIS Age
 def get_domain_age(url):
     try:
         w = whois.whois(extract_domain(url))
@@ -99,7 +122,6 @@ def get_domain_age(url):
         return None
 
 
-# 🔥 PRO ENTROPY
 def calculate_entropy(text):
     counter = Counter(text)
     length = len(text)
@@ -127,8 +149,7 @@ def entropy_risk_score(url):
     if digits > 3:
         risk += 20
 
-    hyphens = domain.count('-')
-    if hyphens > 1:
+    if domain.count('-') > 1:
         risk += 20
 
     if len(domain) > 20:
@@ -137,46 +158,25 @@ def entropy_risk_score(url):
     return risk, entropy
 
 
-# 🔥 ADVANCED KEYWORD ENGINE
 def get_keyword_risk(url):
     url = url.lower()
 
-    high_risk = [
-        "login", "signin", "verify", "account", "secure",
-        "update", "password", "auth", "bank", "wallet",
-        "payment", "billing", "invoice", "kyc", "otp",
-        "refund", "claim", "bonus", "reward", "gift",
-        "free", "win", "lottery", "prize", "cash",
-        "paypal", "upi", "paytm", "phonepe", "gpay",
-        "amazon", "netflix", "appleid", "microsoft",
-        "facebook", "instagram", "whatsapp"
-    ]
-
-    phishing_words = [
-        "phishing", "phish", "fake", "spoof", "clone"
-    ]
-
-    suspicious_patterns = [
-        "secure-", "-secure", "login-", "-login",
-        "verify-", "-verify", "update-", "-update"
+    keywords = [
+        "login","signin","verify","account","secure","update","password",
+        "bank","wallet","payment","billing","invoice","otp",
+        "refund","claim","bonus","reward","gift","free","win","lottery",
+        "paypal","upi","paytm","gpay","amazon","netflix","appleid","facebook"
     ]
 
     risk = 0
-
-    for word in high_risk:
+    for word in keywords:
         if word in url:
             risk += 10
 
-    for word in phishing_words:
-        if word in url:
-            risk += 50
-
-    for pattern in suspicious_patterns:
-        if pattern in url:
-            risk += 15
-
     return risk
 
+
+# ================== ROUTES ==================
 
 @app.route('/')
 def home():
@@ -194,69 +194,71 @@ def predict():
 
         print("\n🔍 Checking URL:", url)
 
-        # 🔥 STEP 0: Tranco whitelist
+        # 🟢 1. WHITELIST FIRST (CRITICAL FIX)
         if is_trusted_domain(url):
             return jsonify({
                 "url": url,
                 "result": "Safe",
                 "risk_score": 0,
-                "reason": "Top trusted domain (Tranco)"
+                "reason": "Trusted domain (Tranco)"
             })
 
-        # 🔥 STEP 1: DNS
+        # 🚨 2. Fake brand detection
+        if is_fake_brand(url):
+            return jsonify({
+                "url": url,
+                "result": "Malicious",
+                "risk_score": 100,
+                "reason": "Fake brand domain"
+            })
+
+        # 🚨 3. DNS check
         if not is_domain_alive(url):
             return jsonify({
                 "url": url,
                 "result": "Malicious",
                 "risk_score": 100,
-                "reason": "Domain does not exist"
+                "reason": "Domain not found"
             })
 
-        # 🔥 STEP 2: Google Safe Browsing
+        # 🚨 4. Google Safe Browsing
         if check_google_safe_browsing(url):
             return jsonify({
                 "url": url,
                 "result": "Malicious",
                 "risk_score": 100,
-                "reason": "Flagged by Google Safe Browsing"
+                "reason": "Flagged by Google"
             })
 
-        # 🔥 STEP 3: ML
+        # 🤖 5. ML Prediction
         features = features_extraction.main(url)
         features = np.array(features).reshape(1, -1)
 
         prediction = model.predict(features)[0]
 
-        risk_score = None
+        risk_score = 0
         if hasattr(model, "predict_proba"):
-            prob = model.predict_proba(features)[0][1]
-            risk_score = round(prob * 100, 2)
+            risk_score = round(model.predict_proba(features)[0][1] * 100, 2)
 
-        # 🔥 STEP 4: Keyword engine
-        keyword_risk = get_keyword_risk(url)
-        if keyword_risk > 0:
-            risk_score = max(risk_score or 0, keyword_risk)
+        # 🔥 6. Keyword risk
+        risk_score = max(risk_score, get_keyword_risk(url))
 
-        # 🔥 STEP 5: WHOIS
+        # 🔥 7. Domain age
         age = get_domain_age(url)
-        if age is not None and age < 180:
-            risk_score = max(risk_score or 0, 75)
+        if age and age < 180:
+            risk_score = max(risk_score, 75)
 
-        # 🔥 STEP 6: Entropy
+        # 🔥 8. Entropy
         entropy_risk, entropy = entropy_risk_score(url)
-        if entropy_risk > 50:
-            risk_score = max(risk_score or 0, entropy_risk)
+        risk_score = max(risk_score, entropy_risk)
 
-        # 🔥 FINAL DECISION
-        if risk_score is not None:
-            if risk_score < 80:
-                result = "Safe"
-            elif risk_score < 95:
-                result = "Suspicious"
-            else:
-                result = "Malicious"
+        # 🎯 FINAL DECISION
+        if risk_score < 80:
+            result = "Safe"
+        elif risk_score < 95:
+            result = "Suspicious"
         else:
-            result = "Safe" if prediction == 0 else "Malicious"
+            result = "Malicious"
 
         return jsonify({
             "url": url,
