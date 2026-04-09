@@ -15,8 +15,12 @@ import features_extraction
 app = Flask(__name__)
 CORS(app)
 
-# 🔹 CONFIG
-GOOGLE_API_KEY = "AIzaSyC__G72Iok1TbdXiBjZ9QfEUmOYKiLn-3o"
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # ================== LOAD TRUSTED DOMAINS ==================
 
@@ -64,7 +68,6 @@ def is_domain_alive(url):
     except:
         return False
 
-# ✅ FIXED FAKE BRAND DETECTION
 def is_fake_brand(url):
     brands = ["google", "facebook", "amazon", "paypal", "microsoft"]
 
